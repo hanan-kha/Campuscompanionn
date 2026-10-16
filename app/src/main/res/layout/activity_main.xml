@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/screen1Title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/app_title"
+            android:textSize="28sp"
+            android:layout_marginBottom="24dp" />
+
+        <TextView
+            android:id="@+id/screen1Greeting"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/label_name"
+            android:labelFor="@+id/etName"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/etName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:inputType="textPersonName"
+            android:maxLines="1"
+            android:imeOptions="actionDone"
+            android:importantForAutofill="no"
+            android:layout_marginBottom="16dp" />
+
+        <Button
+            android:id="@+id/btnSayHello"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="@string/say_hello"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:id="@+id/Greeting"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:textSize="20sp"
+            android:layout_marginBottom="16dp" />
+
+        <Button
+            android:id="@+id/btnClear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:text="@string/clear"
+            android:layout_marginBottom="24dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnCoffee"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="48dp"
+                android:text="@string/open_coffee"
+                android:layout_marginEnd="8dp" />
+
+            <Button
+                android:id="@+id/btnQuiz"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="48dp"
+                android:text="@string/open_quiz" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
