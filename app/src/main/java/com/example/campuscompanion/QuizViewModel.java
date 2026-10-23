@@ -29,7 +29,7 @@ public class QuizViewModel extends ViewModel {
         );
     }
 
-    // ---- state accessors (backed by SavedStateHandle) ----
+  
 
     private int getInt(String key, int defaultValue) {
         Integer v = state.get(key);
@@ -51,7 +51,7 @@ public class QuizViewModel extends ViewModel {
     public Question getCurrent()         { return questions.get(getIndex()); }
     public boolean isLastQuestion()      { return getIndex() == questions.size() - 1; }
 
-    // ---- actions ----
+
 
     public void select(int option) {
         if (isChecked() || isFinished()) return;   // locked after checking
