@@ -1,11 +1,15 @@
 <resources>
-    <string name="app_name">Campuscompanion</string>
-    <string name="app_title">Student Hello</string>
-    <string name="label_name">Your name</string>
-    <string name="say_hello">Say hello</string>
-    <string name="clear">Clear</string>
-    <string name="open_coffee">Open coffee</string>
-    <string name="open_quiz">Open quiz</string>
-    <string name="hello_format">Hello, %1$s!</string>
-    <string name="error_name">Enter a name with 2 to 30 characters</string>
+<string name="app_name">Campuscompanion</string>
+<string name="app_title">Student Hello</string>
+<string name="label_name">Your name</string>
+<string name="say_hello">Say hello</string>
+<string name="clear">Clear</string>
+<string name="open_coffee">Open coffee</string>
+<string name="open_quiz">Open quiz</string>
+<string name="hello_format">Hello, %1$s!</string>
+<string name="error_name">Enter a name with 2 to 30 characters</string>
+<string name="question_label">Question %1$d of %2$d</string>
+<string name="score_label">Score %1$d</string>
+<string name="completed">Quiz complete</string>
+<string name="final_score">Final score: %1$d / %2$d</string>
 </resources>
