@@ -1,169 +1,230 @@
 package com.example.campuscompanion;
 
+import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.RadioButton;
 import android.widget.TextView;
 
-import androidx.appcompat.app.AlertDialog;
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.ViewModelProvider;
 
-import java.util.Arrays;
-import java.util.List;
 
 public class QuizActivity extends AppCompatActivity {
 
-    private static final String[] LETTERS = {"A", "B", "C"};
+    private static final String keyIndex = "index";
+    private static final String keySel = "selected";
+    private static final String keySc = "score";
+    private static final String keyChecked = "checked";
 
-    private QuizViewModel vm;
+    private static final String[] letters = {"A", "B", "C"};
 
-    private TextView tvStudent, tvProgress, tvScore, tvQuestion, tvFeedback;
-    private TextView tvResultScore, tvResultMessage;
-    private View questionGroup, resultGroup;
-    private List<RadioButton> options;
-    private Button btnPrimary, btnRestart, btnBack;
+    private TextView progressTextView;
+    private TextView scoreTextView;
+    private TextView questionTextView;
+    private RadioButton[] optionButtons;
+    private TextView feedbackTextView;
+    private Button priButton;
 
-    private boolean rendering = false;   // stops listeners firing during render()
+    private final Question[] questionBank = new Question[] {
+            new Question(R.string.question_textview,
+                    new int[] {R.string.option_textview, R.string.option_edittext, R.string.option_button}, 0),
+            new Question(R.string.question_click,
+                    new int[] {R.string.option_text_change, R.string.option_click, R.string.option_rotation}, 1),
+            new Question(R.string.question_extras,
+                    new int[] {R.string.option_radio_group, R.string.option_textview, R.string.option_checkbox}, 2)
+    };
+
+    private int currentIndex = 0;
+    private int sel = -1;      // -1 means no option selected
+    private int score = 0;
+    private boolean checked = false;
+
+
+    private final ActivityResultLauncher<Intent> restartLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            new ActivityResultCallback<ActivityResult>() {
+                @Override
+                public void onActivityResult(ActivityResult result) {
+                    // Cancel keeps all progress
+                    if (result.getResultCode() == RESULT_OK) {
+                        restart();
+                    }
+                }
+            });
+
+    private final ActivityResultLauncher<Intent> resultLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            new ActivityResultCallback<ActivityResult>() {
+                @Override
+                public void onActivityResult(ActivityResult result) {
+                    if (result.getResultCode() == RESULT_OK) {
+                        restart();
+                    } else {
+                        finish();
+                    }
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_quiz);
 
-        vm = new ViewModelProvider(this).get(QuizViewModel.class);
+        if (savedInstanceState != null) {
+            currentIndex = savedInstanceState.getInt(keyIndex, 0);
+            sel = savedInstanceState.getInt(keySel, -1);
+            score = savedInstanceState.getInt(keySc, 0);
+            checked = savedInstanceState.getBoolean(keyChecked, false);
+        }
 
-        tvStudent = findViewById(R.id.tvStudent);
-        tvProgress = findViewById(R.id.tvProgress);
-        tvScore = findViewById(R.id.tvScore);
-        questionGroup = findViewById(R.id.questionGroup);
-        tvQuestion = findViewById(R.id.tvQuestion);
-        options = Arrays.asList(
-                (RadioButton) findViewById(R.id.optionA),
-                (RadioButton) findViewById(R.id.optionB),
-                (RadioButton) findViewById(R.id.optionC)
-        );
-        tvFeedback = findViewById(R.id.tvFeedback);
-        resultGroup = findViewById(R.id.resultGroup);
-        tvResultScore = findViewById(R.id.tvResultScore);
-        tvResultMessage = findViewById(R.id.tvResultMessage);
-        btnPrimary = findViewById(R.id.btnPrimary);
-        btnRestart = findViewById(R.id.btnRestart);
-        btnBack = findViewById(R.id.btnBack);
+        TextView studentTextView = findViewById(R.id.student_text_view);
+        progressTextView = findViewById(R.id.progress_text_view);
+        scoreTextView = findViewById(R.id.score_text_view);
+        questionTextView = findViewById(R.id.question_text_view);
+        optionButtons = new RadioButton[] {
+                findViewById(R.id.option_a),
+                findViewById(R.id.option_b),
+                findViewById(R.id.option_c)
+        };
+        feedbackTextView = findViewById(R.id.feedback_text_view);
+        priButton = findViewById(R.id.primary_button);
+        Button restartButton = findViewById(R.id.restart_button);
+        Button backButton = findViewById(R.id.back_button);
 
-        // Student name: pass it from the previous screen with
-        // intent.putExtra("student_name", "...")
-        String name = getIntent().getStringExtra("student_name");
-        if (name == null) name = "Student";
-        tvStudent.setText(getString(R.string.student_label, name));
+        String name = getIntent().getStringExtra(MainActivity.EXTRA_STUDENT_NAME);
+        if (name == null) {
+            name = "";
+            studentTextView.setText("Student: " + name);
+        } else {
+            studentTextView.setText("Student: " + name);
+        }
 
-        for (int i = 0; i < options.size(); i++) {
+        for (int i = 0; i < optionButtons.length; i++) {
             final int optionIndex = i;
-            options.get(i).setOnClickListener(v -> {
-                if (!rendering) {
-                    vm.select(optionIndex);
-                    render();
+            optionButtons[i].setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (!checked) {
+                        sel = optionIndex;
+                    }
+                    updateQuestion();
                 }
             });
         }
 
-        btnPrimary.setOnClickListener(v -> {
-            if (!vm.isChecked()) {
-                vm.check();
-            } else if (vm.isLastQuestion()) {
-                vm.showResult();
-            } else {
-                vm.next();
+        priButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!checked) {
+                    checkAnswer();
+                } else if (isLastQuestion()) {
+                    showResult();
+                } else {
+                    currentIndex++;
+                    sel = -1;
+                    checked = false;
+                }
+                updateQuestion();
             }
-            render();
         });
 
-        btnRestart.setOnClickListener(v ->
-                new AlertDialog.Builder(this)
-                        .setTitle("Restart quiz?")
-                        .setMessage("Your progress and score will be lost.")
-                        .setPositiveButton("Restart", (dialog, which) -> {
-                            vm.restart();
-                            render();
-                        })
-                        .setNegativeButton("Cancel", null)   // preserves everything
-                        .show());
+        restartButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(QuizActivity.this, ConfirmActivity.class);
+                intent.putExtra(ConfirmActivity.extra_title, getString(R.string.restart_title));
+                intent.putExtra(ConfirmActivity.extra_message, getString(R.string.restart_message));
+                restartLauncher.launch(intent);
+            }
+        });
 
-        btnBack.setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
+        backButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
-        render();
+        updateQuestion();
     }
 
-    /** Draws the current state. Never changes the score. */
-    private void render() {
-        rendering = true;
+    @Override
+    protected void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+        savedInstanceState.putInt(keyIndex, currentIndex);
+        savedInstanceState.putInt(keySel, sel);
+        savedInstanceState.putInt(keySc, score);
+        savedInstanceState.putBoolean(keyChecked, checked);
+    }
 
-        tvScore.setText(getString(R.string.score_label, vm.getScore()));
+    private boolean isLastQuestion() {
+        return currentIndex == questionBank.length - 1;
+    }
 
-        if (vm.isFinished()) {
-            questionGroup.setVisibility(View.GONE);
-            resultGroup.setVisibility(View.VISIBLE);
-            btnPrimary.setVisibility(View.GONE);
-            tvProgress.setText(getString(R.string.completed));
-            tvResultScore.setText(getString(R.string.final_score,
-                    vm.getScore(), vm.getQuestions().size()));
+    private void checkAnswer() {
+        if (checked || sel < 0) return;
+        checked = true;
+        if (sel == questionBank[currentIndex].getCorrectIndex()) {
+            score++;
+        }
+    }
 
-            String message;
-            switch (vm.getScore()) {
-                case 3:  message = "Excellent! Perfect score."; break;
-                case 2:  message = "Good job! Review the one you missed."; break;
-                default: message = "Keep practicing. Try the quiz again."; break;
-            }
-            tvResultMessage.setText(message);
+    private void showResult() {
+        Intent intent = new Intent(QuizActivity.this, ResultActivity.class);
+        intent.putExtra(ResultActivity.extraSc, score);
+        intent.putExtra(ResultActivity.extraTotal, questionBank.length);
+        resultLauncher.launch(intent);
+    }
 
-            rendering = false;
-            return;
+    private void restart() {
+        currentIndex = 0;
+        sel = -1;
+        score = 0;
+        checked = false;
+        updateQuestion();
+    }
+
+    @SuppressLint("SetTextI18n")
+    private void updateQuestion() {
+        Question question = questionBank[currentIndex];
+        int[] options = question.getOptionResIds();
+
+        progressTextView.setText(getString(R.string.question) + " " + (currentIndex + 1) + " " + "of" + " " + questionBank.length);
+        scoreTextView.setText("Score" + " " + score);
+        questionTextView.setText(question.getTextResId());
+
+        for (int i = 0; i < optionButtons.length; i++) {
+            optionButtons[i].setText(letters[i] + "  " + getString(options[i]));
+            optionButtons[i].setChecked(i == sel);
+            optionButtons[i].setEnabled(!checked);
         }
 
-        questionGroup.setVisibility(View.VISIBLE);
-        resultGroup.setVisibility(View.GONE);
-        btnPrimary.setVisibility(View.VISIBLE);
-
-        Question q = vm.getCurrent();
-        tvProgress.setText(getString(R.string.question_label,
-                vm.getIndex() + 1, vm.getQuestions().size()));
-        tvQuestion.setText(q.getText());
-
-        for (int i = 0; i < options.size(); i++) {
-            RadioButton rb = options.get(i);
-            rb.setText(LETTERS[i] + "  " + q.getOptions().get(i));
-            rb.setChecked(i == vm.getSelected());
-            rb.setEnabled(!vm.isChecked());          // lock after checking
+        if (!checked) {
+            feedbackTextView.setText("");
+        } else if (sel == question.getCorrectIndex()) {
+            feedbackTextView.setText(R.string.correct_feedback);
+        } else {
+            int c = question.getCorrectIndex();
+            feedbackTextView.setText(getString(R.string.incorrect_feedback) + " "
+                    + letters[c] + " " + getString(options[c]) + ".");
         }
 
-        // Feedback
-        if (vm.isChecked()) {
-            tvFeedback.setVisibility(View.VISIBLE);
-            if (vm.getSelected() == q.getCorrectIndex()) {
-                tvFeedback.setText("Correct! +1 point");
+        if (!checked) {
+            priButton.setText("Check Answer");
+            priButton.setEnabled(sel >= 0);
+        } else {
+            if (isLastQuestion()) {
+                priButton.setText("See result");
             } else {
-                int c = q.getCorrectIndex();
-                tvFeedback.setText("Incorrect. The correct answer is "
-                        + LETTERS[c] + " " + q.getOptions().get(c) + ".");
+                priButton.setText("Next question");
             }
-        } else {
-            tvFeedback.setVisibility(View.GONE);
-            tvFeedback.setText("");
+            priButton.setEnabled(true);
         }
-
-        // Primary action
-        if (!vm.isChecked()) {
-            btnPrimary.setText("Check answer");
-            btnPrimary.setEnabled(vm.getSelected() >= 0);
-        } else if (vm.isLastQuestion()) {
-            btnPrimary.setText("See result");
-            btnPrimary.setEnabled(true);
-        } else {
-            btnPrimary.setText("Next question");
-            btnPrimary.setEnabled(true);
-        }
-
-        rendering = false;
     }
 }
