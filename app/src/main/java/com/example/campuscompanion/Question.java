@@ -1,19 +1,25 @@
 package com.example.campuscompanion;
 
-import java.util.List;
-
 public class Question {
-    private final String text;
-    private final List<String> options;   // display order A, B, C
+    private final int textResId;
+    private final int[] optionResIds;
     private final int correctIndex;
 
-    public Question(String text, List<String> options, int correctIndex) {
-        this.text = text;
-        this.options = options;
+    public Question(int textResId, int[] optionResIds, int correctIndex) {
+        this.textResId = textResId;
+        this.optionResIds = optionResIds;
         this.correctIndex = correctIndex;
     }
 
-    public String getText() { return text; }
-    public List<String> getOptions() { return options; }
-    public int getCorrectIndex() { return correctIndex; }
+    public int getTextResId() {
+        return textResId;
+    }
+
+    public int[] getOptionResIds() {
+        return optionResIds;
+    }
+
+    public int getCorrectIndex() {
+        return correctIndex;
+    }
 }
